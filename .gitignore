@@ -1,0 +1,34 @@
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore backend environments and builds
+tracenode-backend/.venv/
+tracenode-backend/__pycache__/
+tracenode-backend/*.pyc
+tracenode-backend/tmp/
+
+# Ignore frontend environments and builds
+tracenode-frontend/node_modules/
+tracenode-frontend/.next/
+tracenode-frontend/out/
+tracenode-frontend/build/
+tracenode-frontend/.env*.local
+tracenode-frontend/.env
+
+# Ignore parent scratch scripts or zip downloads
+*.whl
+*.zip
+*.tar.gz
+debug_download.py
+print_tenet.py
+inspect_wheel.py
+check_freefr.py
+check_html.py
+check_url.py
+scrape_sf.py
+test_dns.py
+test_potrace.zip
+
+# Ignore unrelated projects in scratch space
+fragrance_directory_vault/
