@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense, useCallback } from 'react';
 import { 
   Upload, 
   Settings, 
@@ -103,6 +103,48 @@ function WorkspaceContent() {
     }
   };
 
+  // Trigger Vectorization API Request
+  const triggerVectorization = useCallback(async () => {
+    if (!imageFile) return;
+    setLoading(true);
+    setError(null);
+
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    formData.append('mode', mode);
+    formData.append('threshold', (threshold / 255.0).toString());
+    
+    const mappedSmoothing = mode === 'laser' 
+      ? ((smoothing / 100.0) * 1.3).toString()
+      : (0.1 + (smoothing / 100.0) * 9.9).toString();
+      
+    formData.append('smoothing', mappedSmoothing);
+    formData.append('blur_intensity', blurIntensity.toString());
+    formData.append('noise_reduction', noiseReduction.toString());
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/vectorize";
+      const response = await fetch(`${apiUrl}`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.detail || 'Failed to vectorize image.');
+      }
+
+      const data = await response.json();
+      setRawSvg(data.svg_content || '');
+      setNodeCount(data.node_count);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Error communicating with vector server.');
+    } finally {
+      setLoading(false);
+    }
+  }, [imageFile, mode, threshold, smoothing, blurIntensity, noiseReduction]);
+
   // Debounced vector generation logic
   useEffect(() => {
     if (!imageFile) return;
@@ -112,7 +154,7 @@ function WorkspaceContent() {
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [mode, threshold, smoothing, blurIntensity, noiseReduction, imageFile]);
+  }, [mode, threshold, smoothing, blurIntensity, noiseReduction, imageFile, triggerVectorization]);
 
   // Handle file uploads
   const handleFileChange = (file: File) => {
@@ -147,46 +189,7 @@ function WorkspaceContent() {
     }
   };
 
-  // Trigger Vectorization API Request
-  const triggerVectorization = async () => {
-    if (!imageFile) return;
-    setLoading(true);
-    setError(null);
 
-    const formData = new FormData();
-    formData.append('image', imageFile);
-    formData.append('mode', mode);
-    formData.append('threshold', (threshold / 255.0).toString());
-    
-    const mappedSmoothing = mode === 'laser' 
-      ? ((smoothing / 100.0) * 1.3).toString()
-      : (0.1 + (smoothing / 100.0) * 9.9).toString();
-      
-    formData.append('smoothing', mappedSmoothing);
-    formData.append('blur_intensity', blurIntensity.toString());
-    formData.append('noise_reduction', noiseReduction.toString());
-
-    try {
-      const response = await fetch('http://localhost:8000/api/vectorize', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.detail || 'Failed to vectorize image.');
-      }
-
-      const data = await response.json();
-      setRawSvg(data.svg_content || '');
-      setNodeCount(data.node_count);
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'Error communicating with vector server.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Handle Download click (Triggers checkout or performs download)
   const handleDownloadClick = async () => {
@@ -349,7 +352,7 @@ function WorkspaceContent() {
           </div>
           <div>
             <h1 className="text-sm font-mono tracking-widest text-zinc-300 font-bold">
-              TRACENODE <span className="text-cyan-400">//</span> VECTOR WORKSPACE
+              TRACENODE <span className="text-cyan-400">{"//"}</span> VECTOR WORKSPACE
             </h1>
             <p className="text-[10px] font-mono text-zinc-500">v1.0.0 // STATUS: READY</p>
           </div>
@@ -705,6 +708,7 @@ function WorkspaceContent() {
               
               <div className="flex-1 flex items-center justify-center p-6 relative">
                 {imagePreview ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img
                     src={imagePreview}
                     alt="Original Upload"

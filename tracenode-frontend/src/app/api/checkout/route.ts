@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { supabase, mockDb, isMockMode, isStripeMockMode } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { mockDb, isMockMode, isStripeMockMode } from '@/lib/supabase';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-key"
+);
 
 export async function POST(request: Request) {
   try {

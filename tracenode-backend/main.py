@@ -15,7 +15,7 @@ app = FastAPI(title="TraceNode Backend Server")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins for local testing and compatibility
+    allow_origins=["*"],  # This wildcard is the magic key
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
