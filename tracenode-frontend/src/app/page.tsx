@@ -123,8 +123,8 @@ function WorkspaceContent() {
     formData.append('noise_reduction', noiseReduction.toString());
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/vectorize";
-      const response = await fetch(`${apiUrl}`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(`${apiUrl}/api/vectorize`, {
         method: 'POST',
         body: formData,
       });
