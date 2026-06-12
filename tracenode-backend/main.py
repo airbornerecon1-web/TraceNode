@@ -12,6 +12,9 @@ from svg_parser import get_svg_node_count
 
 app = FastAPI(title="TraceNode Backend Server")
 # Note: Stripe checkout success/cancel URLs are resolved dynamically in tracenode-frontend
+success_url = "https://tracenode-frontend.vercel.app/?success=true"
+cancel_url = "https://tracenode-frontend.vercel.app/?canceled=true"
+
 
 # Configure CORS
 app.add_middleware(
