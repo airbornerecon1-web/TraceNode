@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     const conversionId = conversionRecord.id;
 
     // 2. Stripe Checkout Integration
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const siteUrl = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
     if (isStripeMockMode) {
       console.log('[API/Checkout] Running in Mock Stripe Mode.');
