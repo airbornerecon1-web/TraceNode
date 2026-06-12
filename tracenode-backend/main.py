@@ -128,25 +128,30 @@ async def vectorize(
     output_svg_path = os.path.join(VECTORS_DIR, f"{session_id}.svg")
 
     try:
-        # Save upload to temporary file
-        with open(temp_input_path, "wb") as buffer:
-            shutil.copyfileobj(image.file, buffer)
-
-        # Preprocess image to a black-and-white BMP with dynamic controls
-        binarize_image(temp_input_path, temp_bmp_path, threshold, blur_intensity, noise_reduction)
-
-        # Run vectorizer according to mode
         if mode == "laser":
+            # 1. CORELDRAW STEP 1: High-Contrast 1-Bit Black & White
+            # Read the uploaded image as grayscale to strip initial color data
+            img_array = np.frombuffer(await image.read(), np.uint8)
+            img = cv2.imdecode(img_array, cv2.IMREAD_GRAYSCALE)
+
+            # Apply Otsu's Thresholding to snap every pixel to pure black or pure white.
+            # This eliminates all gray anti-aliasing, preventing fuzzy, double-lined laser burns.
+            _, binary_img = cv2.threshold(img, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            cv2.imwrite(temp_bmp_path, binary_img)
+
             if not os.path.exists(POTRACE_PATH):
                 raise HTTPException(status_code=500, detail=f"Potrace binary not found at {POTRACE_PATH}")
-            
-            # Run potrace to generate outline SVG
+
+            # 2. CORELDRAW STEPS 2, 3 & 4: Trace, Node Reduction, and Background Removal
             cmd = [
                 POTRACE_PATH,
-                "-s",
-                "-a", str(smoothing),
-                "-o", output_svg_path,
-                temp_bmp_path
+                temp_bmp_path,
+                "-s",                      # Output format: SVG
+                "--color", "#000000",      # Force pure RGB(0,0,0) black for laser software
+                "--turdsize", "150",       # Despeckle: Drops microscopic noise to prevent stray laser firing
+                "--alphamax", "1.2",       # Smoothness: Softens jagged pixel edges into smooth curves
+                "--opttolerance", "0.8",   # Node Reduction: Heavily optimizes the path to stop laser micro-stuttering
+                "-o", output_svg_path      # Output destination
             ]
             
             res = subprocess.run(cmd, capture_output=True, text=True)
@@ -157,6 +162,13 @@ async def vectorize(
                 )
 
         elif mode == "cnc":
+            # Save upload to temporary file
+            with open(temp_input_path, "wb") as buffer:
+                shutil.copyfileobj(image.file, buffer)
+
+            # Preprocess image to a black-and-white BMP with dynamic controls
+            binarize_image(temp_input_path, temp_bmp_path, threshold, blur_intensity, noise_reduction)
+
             if not os.path.exists(PYAUTOTRACE_PATH):
                 # Fallback to python -m autotrace if CLI entry point exe is missing
                 # but we already verified pyautotrace.exe exists
